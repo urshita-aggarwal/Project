@@ -1,0 +1,119 @@
+#MAU (Monthly Active User) per year
+with mau as (
+ select 
+    year,
+    round(avg(mau),2) as avg_mau
+ from (
+    select 
+     year(order_purchase_timestamp) as year, 
+     month(order_purchase_timestamp) as month,
+     count(distinct o.customer_id) as mau
+    from orders as o
+    join customers_dataset as c on o.customer_id=c.customer_id
+	group by 1,2)
+as subquery_mau
+group by 1
+order by 1 desc)
+select * from mau;
+
+#new customer per year
+with new_customer as (select year(first_order) as order_year, count(distinct customer_ID) as total_new_customers
+from (select c.customer_id, min(o.order_purchase_timestamp) as first_order
+from orders as o
+join customers_dataset as c on c.customer_ID=o.customer_ID
+group by c.customer_ID)
+as subquery_new
+group by order_year)
+
+select * from new_customer
+order by order_year asc;
+
+#average of order frequency per year
+WITH avg_freq AS (
+    SELECT 
+        YEAR, 
+        ROUND(AVG(total_order)) AS avg_order_frequency
+    FROM (
+        SELECT 
+            YEAR(o.order_purchase_timestamp) AS year, 
+            COUNT(c.customer_unique_ID) AS total_order
+        FROM orders AS o
+        JOIN customers_dataset  AS c ON c.customer_ID = o.customer_ID
+        GROUP BY YEAR(o.order_purchase_timestamp)
+    ) AS subquery_new
+    GROUP BY year 
+    ORDER BY year ASC
+)
+SELECT * FROM avg_freq;
+
+#repeat order customer per year
+with repeat_orders_cte as(
+ select year, count(customer) as repeat_orders
+ from (
+  select  year(o.order_purchase_timestamp) as year, c.customer_unique_id as customer
+  from orders as o
+  join customers_dataset as c on o.customer_id=c.customer_ID
+  group by year, c.customer_unique_id
+  having count(o.order_ID)>1
+ )as subquery_new
+ group by year 
+)
+
+select * from repeat_orders_cte
+order by year asc;
+
+with mau as (
+ select 
+    year,
+    round(avg(mau),2) as avg_mau
+ from (
+    select 
+     year(order_purchase_timestamp) as year, 
+     month(order_purchase_timestamp) as month,
+     count(distinct o.customer_id) as mau
+    from orders as o
+    join customers_dataset as c on o.customer_id=c.customer_id
+	group by 1,2)
+as subquery_mau
+group by 1
+order by 1 desc), 
+new_customer as (select year(first_order) as order_year, count(distinct customer_ID) as total_new_customers
+from (select c.customer_id, min(o.order_purchase_timestamp) as first_order
+from orders as o
+join customers_dataset as c on c.customer_ID=o.customer_ID
+group by c.customer_ID)
+as subquery_new
+group by order_year),
+avg_freq AS (
+    SELECT 
+        YEAR as year, 
+        ROUND(AVG(total_order)) AS avg_order_frequency
+    FROM (
+        SELECT 
+            YEAR(o.order_purchase_timestamp) AS year, 
+            COUNT(c.customer_unique_ID) AS total_order
+        FROM orders AS o
+        JOIN customers_dataset  AS c ON c.customer_ID = o.customer_ID
+        GROUP BY YEAR(o.order_purchase_timestamp)
+    ) AS subquery_new
+    GROUP BY year 
+    ORDER BY year ASC
+),
+repeat_orders_cte as(
+ select year, count(customer) as repeat_orders
+ from (
+  select  year(o.order_purchase_timestamp) as year, c.customer_unique_id as customer
+  from orders as o
+  join customers_dataset as c on o.customer_id=c.customer_ID
+  group by year, c.customer_unique_id
+  having count(o.order_ID)>1
+ )as subquery_new
+ group by year 
+)
+select m.year, m.avg_mau, a.avg_order_frequency, n.total_new_customers, r.repeat_orders
+from mau as m
+join new_customer as n on m.year=n.order_year
+join repeat_orders_cte as r on m.year=r.year
+join avg_freq as a on m.year=a.year;
+
+
