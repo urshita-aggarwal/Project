@@ -1,0 +1,476 @@
+netstat -ano | findstr :3306;
+create database project1;
+use project1;
+
+CREATE TABLE customers_dataset(
+customer_id VARCHAR(100) primary key, 
+customer_unique_id VARCHAR(100),
+customer_zip_code_prefix INT,
+customer_city VARCHAR(100),
+customer_state VARCHAR(100)
+);
+
+create table product_dataset (
+product_id varchar(100),
+product_category_name varchar (100),
+product_name_length int (5),
+product_description_length int (10),
+product_photos_qty int (10),
+product_weight int (10),
+product_length_cm int (10),
+product_height_cm int (10),	
+product_width_cm int (10) 
+);
+create table sellers_dataset (
+seller_id varchar(100),
+seller_zip_code_prefix int (10),
+seller_city char (100),
+seller_state char (2) 
+);
+create table geolocation_dataset (
+geolocation_zip_code_prefix	int (5),
+geolocation_lat int (100),
+geolocation_lng int (100),
+geolocation_city char (100),
+geolocation_state int (2)
+);
+
+create table order_items (
+order_id VARCHAR (100),
+order_item_id INT (100),
+product_id VARCHAR (100),
+seller_id VARCHAR (100), 
+shipping_limit_date TIMESTAMP, 
+price FLOAT (10,2), 
+freight_value FLOAT
+);
+
+CREATE TABLE order_payments(
+order_id VARCHAR (100),
+payment_sequential INT,
+payment_type VARCHAR (100),
+payment_installments INT, 
+payment_value FLOAT
+);
+
+CREATE TABLE order_reviews(
+review_id VARCHAR (100), 
+order_id VARCHAR (100), 
+review_score INT, 
+review_comment_title VARCHAR (100),
+review_comment_message VARCHAR (100), 
+review_creation_date DATE, 
+review_answer_timestamp TIMESTAMP
+);
+
+CREATE TABLE orders (
+order_id VARCHAR (100) PRIMARY KEY,
+customer_id VARCHAR (100),
+order_status VARCHAR (100), 
+order_purchase_timestamp TIMESTAMP,
+order_approved_at TIMESTAMP,
+order_delivered_carrier_date TIMESTAMP,
+order_delivered_customer_date TIMESTAMP,
+order_estimated_delivery_date DATE);
+
+show tables;
+
+LOAD DATA LOCAL INFILE "C:\\Users\\Rohit aggarwal\\Downloads\\customers_dataset.csv"
+INTO TABLE customers_dataset
+FIELDS TERMINATED BY ',' 
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+SET GLOBAL local_infile = 1;
+SHOW VARIABLES LIKE 'local_infile';
+
+LOAD DATA LOCAL INFILE "C:\\Users\\Rohit aggarwal\\OneDrive\\Desktop\\product_dataset.csv"
+INTO TABLE product_dataset
+CHARACTER SET utf8mb4
+FIELDS TERMINATED BY ',' 
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+LOAD DATA LOCAL INFILE "C:\\Users\\Rohit aggarwal\\OneDrive\\Desktop\\sellers_dataset.csv"
+INTO TABLE sellers_dataset
+CHARACTER SET utf8mb4
+FIELDS TERMINATED BY ',' 
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+SELECT @@sql_mode;
+show warnings;
+SET GLOBAL sql_mode = 'ONLY_FULL_GROUP_BY,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+SET SESSION sql_mode = '';
+SHOW CREATE TABLE sellers_dataset;
+alter table product_dataset
+modify product_name_length int (100);
+SET SQL_SAFE_UPDATES = 0;
+
+delete from product_dataset;
+select * from sellers_dataset;
+
+LOAD DATA LOCAL INFILE "C:\\Users\\Rohit aggarwal\\OneDrive\\Desktop\\geolocation_dataset.csv"
+INTO TABLE geolocation_dataset
+CHARACTER SET utf8mb4
+FIELDS TERMINATED BY ',' 
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+alter table geolocation_dataset
+modify column geolocation_state varchar(100);
+
+LOAD DATA LOCAL INFILE "C:\\Users\\Rohit aggarwal\\OneDrive\\Desktop\\order_items_dataset.csv"
+INTO TABLE order_items
+CHARACTER SET utf8mb4
+FIELDS TERMINATED BY ',' 
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+LOAD DATA LOCAL INFILE "C:\\Users\\Rohit aggarwal\\OneDrive\\Desktop\\order_payments_dataset.csv"
+INTO TABLE order_payments
+CHARACTER SET utf8mb4
+FIELDS TERMINATED BY ',' 
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+LOAD DATA local INFILE "C:\\Users\\Rohit aggarwal\\OneDrive\\Desktop\\order_reviews_dataset.csv"
+INTO TABLE order_reviews
+CHARACTER SET utf8mb4
+FIELDS TERMINATED BY ',' 
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+show warnings;
+
+delete from order_reviews;
+
+desc order_reviews;
+
+alter table order_reviews
+modify column review_creation_date datetime;
+
+alter table order_reviews
+modify column review_answer_timestamp datetime;
+
+INSERT INTO order_reviews (review_creation_date) 
+VALUES (STR_TO_DATE('18-01-2018 10:30', '%d-%m-%Y %H:%i'));
+
+LOAD DATA LOCAL INFILE "C:\\Users\\Rohit aggarwal\\OneDrive\\Desktop\\orders_dataset.csv"
+INTO TABLE orders
+CHARACTER SET utf8mb4
+FIELDS TERMINATED BY ',' 
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+alter table order_reviews
+modify column review_creation_date date;
+
+show tables;
+show warnings;
+select * from order_reviews;
+
+alter table order_items
+add constraint fk_orders
+foreign key (order_id) references orders(order_id);
+
+alter table order_items
+add constraint fk_product
+foreign key (product_id) references product_dataset(product_id);
+
+SELECT product_id, COUNT(*) 
+FROM product_dataset 
+GROUP BY product_id 
+HAVING COUNT(*) > 1;
+
+ALTER TABLE product_dataset 
+ADD PRIMARY KEY (product_id);
+
+alter table order_items
+add constraint fk_seller
+foreign key (seller_id) references sellers_dataset(seller_id);
+
+ALTER TABLE sellers_dataset 
+ADD PRIMARY KEY (seller_id);
+
+SELECT seller_id, COUNT(*) 
+FROM sellers_dataset 
+GROUP BY seller_id 
+HAVING COUNT(*) > 1;
+
+ALTER TABLE order_items 
+ADD constraint fk_seller
+FOREIGN KEY (seller_id) 
+REFERENCES sellers_dataset(seller_id);
+
+delete from sellers_dataset;
+
+LOAD DATA LOCAL INFILE "C:\\Users\\Rohit aggarwal\\OneDrive\\Desktop\\sellers_dataset.csv"
+INTO TABLE sellers_dataset
+CHARACTER SET utf8mb4
+FIELDS TERMINATED BY ',' 
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+ALTER TABLE sellers_dataset 
+ADD PRIMARY KEY (seller_id);
+
+ALTER TABLE order_payments 
+ADD constraint fk_pay
+FOREIGN KEY (order_id) REFERENCES orders(order_id);
+
+ALTER TABLE order_reviews 
+ADD constraint fk_review
+FOREIGN KEY (order_id) REFERENCES orders(order_id);
+
+ALTER TABLE orders 
+ADD constraint fk_customer
+FOREIGN KEY (customer_id) REFERENCES customers_dataset(customer_id);
+
+show tables;
+#ERD
+#to show relationship bw entities and tables
+#entity - person/object/concept - key components 
+#attribute - characteristics of each column
+#Relationships - bidirectional 
+#cardinality -  
+
+select * from orders;
+
+#MAU (Monthly Active User) per year
+with mau as (
+ select 
+    year,
+    round(avg(mau),2) as avg_mau
+ from (
+    select 
+     year(order_purchase_timestamp) as year, 
+     month(order_purchase_timestamp) as month,
+     count(distinct o.customer_id) as mau
+    from orders as o
+    join customers_dataset as c on o.customer_id=c.customer_id
+	group by 1,2)
+as subquery_mau
+group by 1
+order by 1 desc)
+select * from mau;
+
+#new customer per year
+with new_customer as (select year(first_order) as order_year, count(distinct customer_ID) as total_new_customers
+from (select c.customer_id, min(o.order_purchase_timestamp) as first_order
+from orders as o
+join customers_dataset as c on c.customer_ID=o.customer_ID
+group by c.customer_ID)
+as subquery_new
+group by order_year)
+
+select * from new_customer
+order by order_year asc;
+
+#average of order frequency per year
+WITH avg_freq AS (
+    SELECT 
+        YEAR, 
+        ROUND(AVG(total_order)) AS avg_order_frequency
+    FROM (
+        SELECT 
+            YEAR(o.order_purchase_timestamp) AS year, 
+            COUNT(c.customer_unique_ID) AS total_order
+        FROM orders AS o
+        JOIN customers_dataset  AS c ON c.customer_ID = o.customer_ID
+        GROUP BY YEAR(o.order_purchase_timestamp)
+    ) AS subquery_new
+    GROUP BY year 
+    ORDER BY year ASC
+)
+SELECT * FROM avg_freq;
+
+#repeat order customer per year
+with repeat_orders_cte as(
+ select year, count(customer) as repeat_orders
+ from (
+  select  year(o.order_purchase_timestamp) as year, c.customer_unique_id as customer
+  from orders as o
+  join customers_dataset as c on o.customer_id=c.customer_ID
+  group by year, c.customer_unique_id
+  having count(o.order_ID)>1
+ )as subquery_new
+ group by year 
+)
+
+select * from repeat_orders_cte
+order by year asc;
+
+with mau as (
+ select 
+    year,
+    round(avg(mau),2) as avg_mau
+ from (
+    select 
+     year(order_purchase_timestamp) as year, 
+     month(order_purchase_timestamp) as month,
+     count(distinct o.customer_id) as mau
+    from orders as o
+    join customers_dataset as c on o.customer_id=c.customer_id
+	group by 1,2)
+as subquery_mau
+group by 1
+order by 1 desc), 
+new_customer as (select year(first_order) as order_year, count(distinct customer_ID) as total_new_customers
+from (select c.customer_id, min(o.order_purchase_timestamp) as first_order
+from orders as o
+join customers_dataset as c on c.customer_ID=o.customer_ID
+group by c.customer_ID)
+as subquery_new
+group by order_year),
+avg_freq AS (
+    SELECT 
+        YEAR as year, 
+        ROUND(AVG(total_order)) AS avg_order_frequency
+    FROM (
+        SELECT 
+            YEAR(o.order_purchase_timestamp) AS year, 
+            COUNT(c.customer_unique_ID) AS total_order
+        FROM orders AS o
+        JOIN customers_dataset  AS c ON c.customer_ID = o.customer_ID
+        GROUP BY YEAR(o.order_purchase_timestamp)
+    ) AS subquery_new
+    GROUP BY year 
+    ORDER BY year ASC
+),
+repeat_orders_cte as(
+ select year, count(customer) as repeat_orders
+ from (
+  select  year(o.order_purchase_timestamp) as year, c.customer_unique_id as customer
+  from orders as o
+  join customers_dataset as c on o.customer_id=c.customer_ID
+  group by year, c.customer_unique_id
+  having count(o.order_ID)>1
+ )as subquery_new
+ group by year 
+)
+select m.year, m.avg_mau, a.avg_order_frequency, n.total_new_customers, r.repeat_orders
+from mau as m
+join new_customer as n on m.year=n.order_year
+join repeat_orders_cte as r on m.year=r.year
+join avg_freq as a on m.year=a.year;
+
+desc order_items;
+
+#total revenue
+with total_revenue as (
+select YEAR(o.order_purchase_timestamp) AS year,  round(sum(oi.price + oi.freight_value)) as total
+from orders as o
+join order_items as oi on o.order_id=oi.order_id
+group by year)
+
+select * from total_revenue
+order by year asc;
+
+#cancelled orders
+with cancelled_orders as (
+select YEAR(order_purchase_timestamp) AS year, count(distinct customer_id) as cancelled
+from orders as o
+where order_status = "canceled"
+group by year)
+
+select * from cancelled_orders
+order by year asc;
+
+#top_product
+desc order_items;
+with top_product as
+(select year(o.order_purchase_timestamp) as year,
+p.product_category_name as product_name,
+sum(oi.price + oi.freight_value) as total_product_revenue,
+rank() over (partition by year(o.order_purchase_timestamp) order by sum(oi.price + oi.freight_value) desc) as value_rank
+from orders as o
+JOIN order_items as oi ON o.order_id = oi.order_id
+JOIN product_dataset as p ON oi.product_id = p.product_id
+WHERE o.order_status = 'delivered'
+GROUP BY year(o.order_purchase_timestamp), p.product_category_name)
+select * 
+from top_product
+where value_rank = 1
+order by year asc;
+
+#top canceled product
+with top_canceled_product as
+(select year(o.order_purchase_timestamp) as year,
+p.product_category_name,
+count(oi.order_id) as canceled,
+rank() over (partition by year(o.order_purchase_timestamp) order by count(oi.order_id) desc) as value_rank
+from orders as o
+JOIN order_items as oi ON o.order_id = oi.order_id
+JOIN product_dataset as p ON oi.product_id = p.product_id
+WHERE o.order_status = 'canceled'
+GROUP BY year(o.order_purchase_timestamp), p.product_category_name)
+select * 
+from top_canceled_product
+where value_rank = 1
+order by year asc;
+
+with total_revenue as (
+select YEAR(o.order_purchase_timestamp) AS year,  round(sum(oi.price + oi.freight_value)) as all_revenue
+from orders as o
+join order_items as oi on o.order_id=oi.order_id
+group by year), 
+cancelled_orders as (
+select YEAR(order_purchase_timestamp) AS year, count(distinct customer_id) as cancelled
+from orders as o
+where order_status = 'canceled'
+group by year),
+top_product as
+(select year(o.order_purchase_timestamp) as year,
+p.product_category_name as product_name,
+sum(oi.price + oi.freight_value) as total_product_revenue,
+rank() over (partition by year(o.order_purchase_timestamp) order by sum(oi.price + oi.freight_value) desc) as value_rank
+from orders as o
+JOIN order_items as oi ON o.order_id = oi.order_id
+JOIN product_dataset as p ON oi.product_id = p.product_id
+WHERE o.order_status = 'delivered'
+GROUP BY year(o.order_purchase_timestamp), p.product_category_name),
+top_canceled_product as
+(select year(o.order_purchase_timestamp) as year,
+p.product_category_name,
+count(oi.order_id) as canceled,
+rank() over (partition by year(o.order_purchase_timestamp) order by count(oi.order_id) desc) as value_rank
+from orders as o
+JOIN order_items as oi ON o.order_id = oi.order_id
+JOIN product_dataset as p ON oi.product_id = p.product_id
+WHERE o.order_status = 'canceled'
+GROUP BY year(o.order_purchase_timestamp), p.product_category_name)
+select tr.year, tr.all_revenue, co.cancelled, tp.total_product_revenue,tcp.canceled
+from total_revenue as tr 
+join cancelled_orders as co on tr.year=co.year
+join top_product as tp on tr.year=tp.year and tp.value_rank=1
+join top_canceled_product as tcp on tr.year=tcp.year and tcp.value_rank=1
+order by tr.year asc;
+
+desc order_payments;
+
+with num_payments as (
+select payment_type,
+count(order_id) as num_payments
+from order_payments
+group by payment_type),
+type_payment as (
+select op.payment_type,
+sum(case when year(o.order_purchase_timestamp)=2016 then 1 else 0 end) as year_2016,
+sum(case when year(o.order_purchase_timestamp)=2017 then 1 else 0 end) as year_2017,
+sum(case when year(o.order_purchase_timestamp)=2018 then 1 else 0 end) as year_2018
+from order_payments as op
+join orders as o on op.order_id=o.order_id
+group by payment_type)
+select num_payments.payment_type, type_payment.year_2016, type_payment.year_2017, type_payment.year_2018
+from num_payments
+join type_payment on num_payments.payment_type = type_payment.payment_type
+order by num_payments.payment_type desc;
