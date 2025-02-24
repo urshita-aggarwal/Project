@@ -28,7 +28,7 @@ seller_city char (100),
 seller_state char (2) 
 );
 create table geolocation_dataset (
-geolocation_zip_code_prefix	int (5),
+geolocation_zip_code_prefix int (5),
 geolocation_lat int (100),
 geolocation_lng int (100),
 geolocation_city char (100),
