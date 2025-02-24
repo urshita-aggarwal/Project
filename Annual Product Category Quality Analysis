@@ -1,0 +1,91 @@
+#total revenue
+with total_revenue as (
+select YEAR(o.order_purchase_timestamp) AS year,  round(sum(oi.price + oi.freight_value)) as total
+from orders as o
+join order_items as oi on o.order_id=oi.order_id
+group by year)
+
+select * from total_revenue
+order by year asc;
+
+#cancelled orders
+with cancelled_orders as (
+select YEAR(order_purchase_timestamp) AS year, count(distinct customer_id) as cancelled
+from orders as o
+where order_status = "canceled"
+group by year)
+
+select * from cancelled_orders
+order by year asc;
+
+#top_product
+desc order_items;
+with top_product as
+(select year(o.order_purchase_timestamp) as year,
+p.product_category_name as product_name,
+sum(oi.price + oi.freight_value) as total_product_revenue,
+rank() over (partition by year(o.order_purchase_timestamp) order by sum(oi.price + oi.freight_value) desc) as value_rank
+from orders as o
+JOIN order_items as oi ON o.order_id = oi.order_id
+JOIN product_dataset as p ON oi.product_id = p.product_id
+WHERE o.order_status = 'delivered'
+GROUP BY year(o.order_purchase_timestamp), p.product_category_name)
+select * 
+from top_product
+where value_rank = 1
+order by year asc;
+
+#top canceled product
+with top_canceled_product as
+(select year(o.order_purchase_timestamp) as year,
+p.product_category_name,
+count(oi.order_id) as canceled,
+rank() over (partition by year(o.order_purchase_timestamp) order by count(oi.order_id) desc) as value_rank
+from orders as o
+JOIN order_items as oi ON o.order_id = oi.order_id
+JOIN product_dataset as p ON oi.product_id = p.product_id
+WHERE o.order_status = 'canceled'
+GROUP BY year(o.order_purchase_timestamp), p.product_category_name)
+select * 
+from top_canceled_product
+where value_rank = 1
+order by year asc;
+
+with total_revenue as (
+select YEAR(o.order_purchase_timestamp) AS year,  round(sum(oi.price + oi.freight_value)) as all_revenue
+from orders as o
+join order_items as oi on o.order_id=oi.order_id
+group by year), 
+cancelled_orders as (
+select YEAR(order_purchase_timestamp) AS year, count(distinct customer_id) as cancelled
+from orders as o
+where order_status = 'canceled'
+group by year),
+top_product as
+(select year(o.order_purchase_timestamp) as year,
+p.product_category_name as product_name,
+sum(oi.price + oi.freight_value) as total_product_revenue,
+rank() over (partition by year(o.order_purchase_timestamp) order by sum(oi.price + oi.freight_value) desc) as value_rank
+from orders as o
+JOIN order_items as oi ON o.order_id = oi.order_id
+JOIN product_dataset as p ON oi.product_id = p.product_id
+WHERE o.order_status = 'delivered'
+GROUP BY year(o.order_purchase_timestamp), p.product_category_name),
+top_canceled_product as
+(select year(o.order_purchase_timestamp) as year,
+p.product_category_name,
+count(oi.order_id) as canceled,
+rank() over (partition by year(o.order_purchase_timestamp) order by count(oi.order_id) desc) as value_rank
+from orders as o
+JOIN order_items as oi ON o.order_id = oi.order_id
+JOIN product_dataset as p ON oi.product_id = p.product_id
+WHERE o.order_status = 'canceled'
+GROUP BY year(o.order_purchase_timestamp), p.product_category_name)
+select tr.year, tr.all_revenue, co.cancelled, tp.total_product_revenue,tcp.canceled
+from total_revenue as tr 
+join cancelled_orders as co on tr.year=co.year
+join top_product as tp on tr.year=tp.year and tp.value_rank=1
+join top_canceled_product as tcp on tr.year=tcp.year and tcp.value_rank=1
+order by tr.year asc;
+
+desc order_payments;
